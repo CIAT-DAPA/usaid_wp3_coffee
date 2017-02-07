@@ -30,6 +30,7 @@ for(i in 1:length(period)){
 
   files<-paste0(path_in,varlist[var],"_",year_from:year_to,"_",period[[i]],".tif")
   layers_p<-stack(files)
+  crs(layers_p) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
       ###establece limites de atipicidad
      if(tr=="yes"&varlist[var]=="prec"){
         layers_p<-log1p(layers_p)
@@ -49,18 +50,19 @@ for(i in 1:length(period)){
     }
       for(s in 1:nlayers(layers_p)){
         if(varlist[var]=="prec"){
-    low_p <- overlay(x =layers_p[[s]], y = r_low, fun = function(x, y) ifelse(x <=y, (x/y)*100, 0))
-    up_p<-overlay(x =layers_p[[s]], y = r_up, fun = function(x, y) ifelse(x >=y, (x/y)*100, 0))
+    low_p <- overlay(x =layers_p[[s]], y = r_low, fun = function(x, y) ifelse(x <=y, x, 0))
+    up_p<-overlay(x =layers_p[[s]], y = r_up, fun = function(x, y) ifelse(x >=y, x, 0))
     anomals<-overlay(x =layers_p[[s]], y = norm, fun = function(x, y)(x/y)*100 )
         } ##end conditional outlier
         if( varlist[var]!="prec"){ 
-          low_p <- overlay(x =layers_p[[s]], y = r_low, fun = function(x, y) ifelse(x <=y, (x/y)*100, 0))   #% de alejamiento del atipico por debajo del limite
-          up_p<-overlay(x =layers_p[[s]], y = r_up, fun = function(x, y) ifelse(x >=y, (x/y)*100, 0))  #% de alejamiento del atipico por encima del limite
+          low_p <- overlay(x =layers_p[[s]], y = r_low, fun = function(x, y) ifelse(x <=y, x, 0))   #% de alejamiento del atipico por debajo del limite
+          up_p<-overlay(x =layers_p[[s]], y = r_up, fun = function(x, y) ifelse(x >=y, x, 0))  #% de alejamiento del atipico por encima del limite
           anomals<-overlay(x =layers_p[[s]], y = norm, fun = function(x, y)(y/10)-(x/10))  
         }
         
-    if(quantile(up_p[],1,na.rm=T)>0){
-    writeRaster(crop(low_p,mask), filename=paste0(dir_out,"/outliers_low_",names(layers_p[[s]])),format="GTiff")
+    if(quantile(low_p[],1,na.rm=T)>0){
+    writeRaster(crop(low_p,mask), filename=paste0(dir_out,"/outliers_low_",names(layers_p[[s]])),format="GTiff")}
+        if(quantile(up_p[],1,na.rm=T)>0){
     writeRaster(crop(up_p,mask), filename=paste0(dir_out,"/outliers_up_",names(layers_p[[s]])),format="GTiff")
         }
    writeRaster(crop(anomals,mask), filename=paste0(dir_out,"/anomalias_respec_normal_",names(layers_p[[s]])),format="GTiff")
