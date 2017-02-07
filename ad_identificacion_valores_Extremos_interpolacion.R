@@ -60,7 +60,7 @@ for(i in 1:length(period)){
           anomals<-overlay(x =layers_p[[s]], y = norm, fun = function(x, y)(y/10)-(x/10))  
         }
         
-    if(quantile(low_p[],1,na.rm=T)>0){
+    if(quantile(low_p[],1,na.rm=T)!=0){
     writeRaster(crop(low_p,mask), filename=paste0(dir_out,"/outliers_low_",names(layers_p[[s]])),format="GTiff")}
         if(quantile(up_p[],1,na.rm=T)>0){
     writeRaster(crop(up_p,mask), filename=paste0(dir_out,"/outliers_up_",names(layers_p[[s]])),format="GTiff")
