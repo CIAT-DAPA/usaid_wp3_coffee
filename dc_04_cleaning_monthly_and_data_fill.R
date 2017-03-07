@@ -29,9 +29,9 @@ trimedia_tukey <- function(x){
 p_ca_cs<-1.2 ##limite de NA para años consecutivos, tal vez no es buena idea quitar las que tengan un año consecutivo por que quedan muy pocas (1-9-2016)
 ##se realiza de esta manera para: 1. rescatar mas estaciones 2. se es mas flexible porque en la serie completa estos NA son menos
 p_na<-0.3
-year_from<-1981
-year_to<-2010
-years_climat<-1981:2010
+year_from<-2000
+year_to<-2016
+years_climat<-2000:2016
 e_t=4  ##error máximo tolerable de temperatura
 e_p<-5  ##error máximo tolerable de precipitacióm
 decim<-1 ##numero de cifras decimales
@@ -40,12 +40,12 @@ lat_s<-3.5
 lat_u<-6.5
 long_s<-(-77.5)
 long_u<-(-74.5)
-yearly<-"NO" #poner YES en caso de que la climatologia se vaya a calcular con medias moviles, para esto necesitaria datos desde
+yearly<-"YES" #poner YES en caso de que la climatologia se vaya a calcular con medias moviles, para esto necesitaria datos desde
  ###minimo 2 años antes de year_from
 ###fuentes de datos
 #cenicafe
 dir_ceni<-"D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/datacleaning/datacleaning_fedecafe/data_monthly/"
-dir_out<-"D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/climatology_nov"
+dir_out<-"//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/01-weather_stations/proceso 2000-2016 AEPS/climatology_opc"
 
 ##infoestaciones
 cenicafe<-read.csv("Z:/Usaid_Fedecafe/datos/info_estaciones/catalogo estaciones12.csv",header=T)
@@ -194,7 +194,7 @@ precip_w$cs<-paste0(precip_w$Codigo,"_prec_",precip_w$Source)
 precip_w[,1:2]<-NULL
 precip_w<-split(precip_w,precip_w$cs)
 ##ESCRIBIENDO DATOS
-lapply(seq_along(precip_w),function(x)write.table(precip_w[[x]][,c("Date","Value") ], paste0("D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/datacleaning/data_montly_withoutNA_ambas_fuentes/",names(precip_w)[x],".csv"),row.names=F,sep=","))
+#lapply(seq_along(precip_w),function(x)write.table(precip_w[[x]][,c("Date","Value") ], paste0("D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/datacleaning/data_montly_withoutNA_ambas_fuentes/",names(precip_w)[x],".csv"),row.names=F,sep=","))
 ##########################################################################
 #######TEMPERATURA
 temp<-filter(datosf1,var%in%c("tmin","tmax"))
@@ -208,7 +208,7 @@ freq_vartemp<-temp[,c("var","Codigo","Value")]%>%
   data.frame()
 freq_vartemp<-data.frame(table(freq_vartemp$Codigo))
 temp<-temp[temp$var%in%c("tmin","tmax"),]
-temp<-temp[-which(temp$Codigo%in%26095180),]
+#temp<-temp[-which(temp$Codigo%in%26095180),]
 temp<-dcast(temp[,c("Date","Codigo","var","Value")],Date+Codigo~var,value.var = "Value")
 imsp<-list()
 for(i in 1:12){
@@ -232,7 +232,7 @@ temp_w$Codigo<-ifelse(nchar(temp_w$Codigo)<=7,paste0(0,temp_w$Codigo),temp_w$Cod
 colnames(temp_w)<-c("Date","Codigo","var","Value","Source")
 temp_w$cs<-paste0(temp_w$Codigo,"_",temp_w$var,"_",temp_w$Source)
 temp_w<-split(temp_w,temp_w$cs)
-lapply(seq_along(temp_w),function(x)write.table(temp_w[[x]][,c("Date","Value") ], paste0("D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/datacleaning/data_montly_withoutNA_ambas_fuentes/",names(temp_w)[x],".csv"),row.names=F,sep=","))
+#lapply(seq_along(temp_w),function(x)write.table(temp_w[[x]][,c("Date","Value") ], paste0("D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/datacleaning/data_montly_withoutNA_ambas_fuentes/",names(temp_w)[x],".csv"),row.names=F,sep=","))
 ##########################################################################
 rm(datos,datosf1,est_na_cons,freq_vartemp,freq_estationtoremove1,temp_w,precip_w)
 colnames(temp1)[4]<-"Value_i"
@@ -251,21 +251,26 @@ climatology<-datos_without_na[,c("Codigo","var","month","Value_i")]%>%
 if(yearly=="YES"){
 climatology<-list()
 for(i in 1:length(years_climat)){
-  climatology[[i]]<-datos_without_na[datos_without_na$year<=(years_climat[i]+2)&datos_without_na$year>=(years_climat[i]-2),
-                                  c("Codigo","var","month","Value_i")]%>%
+  climatology[[i]]<-datos_without_na[datos_without_na$year<=(years_climat[i])&datos_without_na$year>=(years_climat[i]-2),
+                          c("Codigo","var","month","Value_i")]%>%
     group_by(Codigo,var,month)%>%
-    summarise_each(funs(trimedia_tukey(.)))
+    summarise_each(funs(trimedia_tukey(.)))%>%data.frame(.)
   }
 names(climatology)<-years_climat
 climatology<-ldply(climatology)
-}
 climatology$Value_i<-round(climatology$Value_i,decim)
-climatology<-dcast(climatology,Codigo+var~month)
+climatology<-dcast(climatology,Codigo+var+.id~month)
+climatology$var<-paste0(climatology$var,"_ris_",climatology$.id) 
+}else{
+climatology$Value_i<-round(climatology$Value_i,decim)
+climatology<-dcast(climatology,Codigo+var+~month)
+climatology$var<-paste0(climatology$var,"_ris_2011",climatology$.id)  ##se pone el numero 2011 para ejecutar la interpolacion con los yearly
+
+}
 climatology<-join(climatology,info_estaciones,by=c("Codigo"),match="first")
 climatology$old_id<-climatology$Codigo
 climatology$country<-rep("Colombia",nrow(climatology))
 climatology$nyears<-rep((year_to-year_from)+1,nrow(climatology))
-climatology$var<-paste0(climatology$var,"_ris_2011")  ##se pone el numero 2011 para ejecutar la interpolacion con los yearly
 climatology$.id<-NULL
 climatology<-climatology[,c("var","Codigo","Source","old_id","Name","country","Long","Lat","Alt",month.abb,"nyears")]
 colnames(climatology)[2]<-"ID"

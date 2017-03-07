@@ -13,18 +13,20 @@ lat_s<-3.5
 lat_u<-6.5
 long_s<-(-77.5)
 long_u<-(-74.5)
-var_list<-c("prec","tmin","tmax")
-rcp<-c("RCP26","RCP45","RCP85")
-#'''rcp60'
+#var_list<-c("prec","tmin","tmax")
+var_list<-"prec"
+#rcp<-c("RCP26","RCP45","RCP85")
+rcp<-"rcp45"
 year_from_h<-1981
 year_to_h<-2010
 # "giss_e2_h",  "ipsl_cm5a_mr" este modelo no tiene prec para el rcp45
 ideam_models<-c("bcc_csm1_1",   "ncar_ccsm4","csiro_mk3_6_0","fio_esm","gfdl_cm3",
-              "giss_e2_r","nimr_hadgem2_ao","ipsl_cm5a_lr","miroc_esm","miroc_esm_chem","miroc_miroc5","mri_cgcm3")
-points_ext_prec<-read.csv("D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/climatology_nov/complete_rain/rain_ris_1984.csv",header=T)[,c("LONG","LAT")]      ##son los puntos a extraer
-points_ext_tem<-read.csv("D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/climatology_nov/complete_temp/tmax_ris_1984.csv",header=T)[,c("LONG","LAT")]  
-mask<-readOGR("D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/shps_altitud_y otros/risaralda_admin/ris_adm0.shp",layer="ris_adm0") 
-region<-raster("D:/ToBackup/Unidad Z/Usaid_Fedecafe/datos/linea_base_1981-2010/indices_agroclimaticos/trimestre_sin_promedio/trimestre/tmean_mam.tif") 
+             "giss_e2_r","nimr_hadgem2_ao","ipsl_cm5a_lr","miroc_esm","miroc_esm_chem","miroc_miroc5","mri_cgcm3")
+#ideam_models<-"ipsl_cm5a_mr"
+points_ext_prec<-read.csv("//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/stations-averages/rain_ris_1984.csv",header=T)[,c("LONG","LAT")]  ###puntos a extraer
+points_ext_tem<-read.csv("//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/stations-averages/tmax_ris_1984.csv",header=T)[,c("LONG","LAT")]  
+mask<-readOGR("//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/region/mask/ris_adm0_wgs84.shp",layer="ris_adm0_wgs84") 
+region<-raster("//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/outputs_climatology_1981-2010/average/dtr_1981_2010_2.tif") 
 ##LOAD FUNCTIONS 
 trimedia_tukey <- function(x){
   y1 <- quantile(x, probs = 0.25, na.rm = T)
@@ -96,12 +98,12 @@ names(future_30)<-2021:2050
     future_20<-lapply(future_20, function(x)x*3600*24*30)
     future_30<-lapply(future_30, function(x)x*3600*24*30)
     anomals_20<-lapply(seq_along(stacks_year),function(x)(future_20[[x]]-stacks_year[[x]])/stacks_year[[x]])
-    climat_20<-lapply(anomals_20,function(x)data.frame(coordinates(points_ext_tem),extract(x,coordinates(points_ext_tem))))
+    climat_20<-lapply(anomals_20,function(x)data.frame(coordinates(points_ext_prec),extract(x,coordinates(points_ext_prec))))
     names(climat_20)<-names(stacks_year)
     climat_20<-ldply(climat_20)
     colnames(climat_20)<-c("year","long",'lat',month.abb)
     anomals_30<-lapply(seq_along(stacks_year),function(x)(future_30[[x]]-stacks_year[[x]])/stacks_year[[x]])
-    climat_30<-lapply(anomals_30,function(x)data.frame(coordinates(points_ext_tem),extract(x,coordinates(points_ext_tem))))
+    climat_30<-lapply(anomals_30,function(x)data.frame(coordinates(points_ext_prec),extract(x,coordinates(points_ext_prec))))
     names(climat_30)<-names(stacks_year)
     climat_30<-ldply(climat_30)
     colnames(climat_30)<-c("year","long",'lat',month.abb)

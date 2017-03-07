@@ -7,15 +7,17 @@ require(maptools)
 require(rgdal)
 library(sp)
 ######PARAMS
-year_from<-2001
+year_from<-1981
 year_to<-2010  ###es el año final de la linea base
 percentile<-c(.25,.75) ##percentiles para definir los limites de atipicidad
 error_t<-1.5 ##numero de desviaciones a partir del cual se considerara un dato atipico para temperatura
 error_p<-1.5 ##numero de desviaciones a partir del cual se considerara un dato atipico para precipitación
+#path_in<-"//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/outputs_yearly_v2_2011_2016/average/"
 path_in<-"//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/outputs_yearly_v2/average/"
 dir_out<-"D:/ToBackup/Unidad Z/Usaid_Fedecafe/resultados id eventos extremos/raster_results"
 tr<-"no"  ##yes or no, recomendado para transformar precipitación y corregirle un poco la asimetria
 varlist <- c("prec","tmax","tmin","tmean")
+#varlist <- "prec"
 mask<-readOGR(paste0(dir_out,"/mask/CapaRisaralda_WGS84.shp"), layer= "CapaRisaralda_WGS84")
 seasons <- "monthly" #seasons, monthly or quarter
 
@@ -28,9 +30,11 @@ if(seasons=="quarter"){
 for (var in 1:length(varlist)){
 for(i in 1:length(period)){
 
-  files<-paste0(path_in,varlist[var],"_",year_from:year_to,"_",period[[i]],".tif")
+  files<-paste0(path_in,varlist[var],"_",year_from:year_to,"_",period[[i]],".asc")
   layers_p<-stack(files)
   crs(layers_p) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+  layers_p<-mask(layers_p,mask)
+  layers_p<-stack(layers_p)
       ###establece limites de atipicidad
      if(tr=="yes"&varlist[var]=="prec"){
         layers_p<-log1p(layers_p)
@@ -47,7 +51,8 @@ for(i in 1:length(period)){
      if( varlist[var]!="prec"){
       r_low<- calc(layers_p, function(x)quantile(x,percentile[1],na.rm=T)-(error_t*IQR(x,na.rm=T)))
       r_up<-  calc(layers_p, function(x)quantile(x,percentile[2],na.rm=T)+(error_t*IQR(x,na.rm=T)))
-    }
+     }
+   
       for(s in 1:nlayers(layers_p)){
         if(varlist[var]=="prec"){
     low_p <- overlay(x =layers_p[[s]], y = r_low, fun = function(x, y) ifelse(x <=y, x, 0))
@@ -60,11 +65,21 @@ for(i in 1:length(period)){
           anomals<-overlay(x =layers_p[[s]], y = norm, fun = function(x, y)(y/10)-(x/10))  
         }
         
-    if(quantile(low_p[],1,na.rm=T)!=0){
-    writeRaster(crop(low_p,mask), filename=paste0(dir_out,"/outliers_low_",names(layers_p[[s]])),format="GTiff")}
-        if(quantile(up_p[],1,na.rm=T)>0){
-    writeRaster(crop(up_p,mask), filename=paste0(dir_out,"/outliers_up_",names(layers_p[[s]])),format="GTiff")
-        }
+        if(tr=="yes"&varlist[var]=="prec"&quantile(low_p[],1,na.rm=T)!=0){
+        writeRaster(crop(exp(low_p)-1,mask), filename=paste0(dir_out,"/outliers_low_",names(layers_p[[s]])),format="GTiff")
+      }
+        if(tr=="no"&quantile(low_p[],1,na.rm=T)!=0){
+        writeRaster(crop(low_p,mask), filename=paste0(dir_out,"/outliers_low_",names(layers_p[[s]])),format="GTiff")
+         }
+       
+        if(tr=="yes"&varlist[var]=="prec"&quantile(up_p[],1,na.rm=T)!=0){
+            writeRaster(crop(exp(up_p)-1,mask), filename=paste0(dir_out,"/outliers_up_",names(layers_p[[s]])),format="GTiff")
+          }
+        if(tr=="no"&quantile(up_p[],1,na.rm=T)!=0){
+            writeRaster(crop(up_p,mask), filename=paste0(dir_out,"/outliers_up_",names(layers_p[[s]])),format="GTiff")
+          }
+        
+             
    writeRaster(crop(anomals,mask), filename=paste0(dir_out,"/anomalias_respec_normal_",names(layers_p[[s]])),format="GTiff")
    }#end cicle
     if(tr=="yes"&varlist[var]=="prec"){
