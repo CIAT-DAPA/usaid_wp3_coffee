@@ -7,13 +7,13 @@ require(maptools)
 require(rgdal)
 library(sp)
 ######PARAMS
-year_from<-1981
-year_to<-2010  ###es el año final de la linea base
+year_from<-2000
+year_to<-2016 ###es el año final de la linea base
 percentile<-c(.25,.75) ##percentiles para definir los limites de atipicidad
 error_t<-1.5 ##numero de desviaciones a partir del cual se considerara un dato atipico para temperatura
 error_p<-1.5 ##numero de desviaciones a partir del cual se considerara un dato atipico para precipitación
-#path_in<-"//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/outputs_yearly_v2_2011_2016/average/"
-path_in<-"//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/outputs_yearly_v2/average/"
+path_in<-"//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/outputs_yearly_v2_2011_2016/average/"
+path_in1<-"//dapadfs/Workspace_cluster_9/USAID_Project/Product_6_resilient_coffee/02-monthly-interpolations/outputs_yearly_v2/average/"
 dir_out<-"D:/ToBackup/Unidad Z/Usaid_Fedecafe/resultados id eventos extremos/raster_results"
 tr<-"no"  ##yes or no, recomendado para transformar precipitación y corregirle un poco la asimetria
 varlist <- c("prec","tmax","tmin","tmean")
@@ -29,9 +29,18 @@ if(seasons=="quarter"){
 }
 for (var in 1:length(varlist)){
 for(i in 1:length(period)){
-
-  files<-paste0(path_in,varlist[var],"_",year_from:year_to,"_",period[[i]],".asc")
+if(year_to<=2010){
+  files1<-paste0(path_in1,varlist[var],"_",year_from:year_to,"_",period[[i]],".asc")
+  layers_p<-stack(files1)
+}else{
+  
+  files1<-paste0(path_in1,varlist[var],"_",year_from:2010,"_",period[[i]],".asc")
+  layers_p1<-stack(files1)
+  files<-paste0(path_in,varlist[var],"_",2011:year_to,"_",period[[i]],".asc")
   layers_p<-stack(files)
+  layers_p<-stack(layers_p1,layers_p);rm(layers_p1)
+
+}
   crs(layers_p) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
   layers_p<-mask(layers_p,mask)
   layers_p<-stack(layers_p)
