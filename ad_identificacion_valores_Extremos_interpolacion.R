@@ -8,7 +8,7 @@ require(rgdal)
 library(sp)
 ######PARAMS
 year_from<-2000
-year_to<-2016 ###es el año final de la linea base
+year_to<-2010 ###es el año final de la linea base
 percentile<-c(.25,.75) ##percentiles para definir los limites de atipicidad
 error_t<-1.5 ##numero de desviaciones a partir del cual se considerara un dato atipico para temperatura
 error_p<-1.5 ##numero de desviaciones a partir del cual se considerara un dato atipico para precipitación
