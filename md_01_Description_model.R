@@ -3,7 +3,7 @@
 ## Author: Eliana Vallejo
 ## dpto Risaralda
 ##########################################################################################
-list.of.packages <- c("raster", "biomod2","dismo","gridExtra","reshape2","mgcv","VSURF","dplyr","plyr")
+list.of.packages <- c("raster", "biomod2","dismo","gridExtra","reshape2","mgcv","VSURF","maptools","rgdal","sp","dplyr","plyr")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 ##load packages
