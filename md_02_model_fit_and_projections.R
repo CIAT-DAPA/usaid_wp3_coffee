@@ -16,9 +16,8 @@ library(gridExtra);library(reshape2)
 #######################################################################
 #modeling
 evot<-T ##si es T se incluye la evapotranspiracion de referencia
-add_suelos<-"yes"  #para anadir suelos
 ##la cual no varia a futuro por que se calcula a partir de la altitud
-cor_multi<-.7  ##correlacion a partir de la cual puede haber multicolinealidad
+add_suelos<-"yes"  #para anadir suelos
 sampl<-100##porcentaje de datos usado para ajuste de modelo 100 default
 p_train<-70 #porcentaje de datos con los que se entrena el modelo
 ext_ref<-extent(-76.35875, -75.40875, 4.67125, 5.475417)   ##cuadrado de modelación 
@@ -81,7 +80,8 @@ p<-sample(1:nrow(presencia1),round((sampl/100)*nrow(presencia1),0))
 p<-presencia1[p,]
 p<-p[,1:2]
 coordinates(p)<-~x+y
-myBiomodData<- BIOMOD_FormatingData(resp.var = p, expl.var = clima_current,resp.name = sp_name,PA.nb.rep =replicates,PA.nb.absences =length(p), PA.strategy = strategy)
+if(sum(typ_model%in%"GAM" | typ_model%in%"GLM")==2){absence<-round(length(p)*.25,0)}else{absence<-round(length(p)*.65,0)}
+myBiomodData<- BIOMOD_FormatingData(resp.var = p, expl.var = clima_current,resp.name = sp_name,PA.nb.rep =replicates,PA.nb.absences =absence, PA.strategy = strategy)
 plot(myBiomodData)
 ###a continuación se exponen los parametros de cada modelo, algunos son por defecto de biomod2, pero se pueden modificar según requerimientos del usuario
 myBiomodOption<- BIOMOD_ModelingOptions(
@@ -175,14 +175,14 @@ writeRaster(rcpraster,filename=paste0(odir_current,"/",names(rcpraster)), bylaye
 for(m in 1:length(ideam_models)){
   for(f in 1:length(rcp)){
     for(fut in 1:length(futuro)){
-      idir_f<-bdir
+      idir_f<-paste0(bdir,"indices_agroclimaticos")
       fut<-paste0("futuro_",futuro[fut])
       rcpv<-rcp[f]
       model=ideam_models[m]
       idir_f<-paste0(idir_f,"/",fut,"/",rcpv,"/",model)
       odir_f<-paste0(odir,"/",fut,"/",rcpv,"/",model)  
       if (!file.exists(odir_f)) {dir.create(odir_f,recursive=T)} else {cat("Folder exists")}
-        clima<-stack(lapply(list.files(idir_f,full.names = T,pattern=".tif"),function(x)stack(x)))
+        clima<-stack(lapply(list.files(idir_f,full.names = T,pattern=".asc"),function(x)stack(x)))
       clima<-mask(crop(clima,clima_current[[1]]),clima_current[[1]])
       alt<-mask(crop(alt,clima_current[[1]]),clima_current[[1]])
       clima<-stack(alt ,clima)
